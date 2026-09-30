@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PyStudio.ARnc - Python Live Studio</title>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.27.2/full/pyodide.js"></script>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+body{
+    min-height:100vh;
+    font-family:Inter,Arial,sans-serif;
+    background:
+      radial-gradient(circle at 10% 10%,#553cff55,transparent 30%),
+      radial-gradient(circle at 90% 20%,#00d4ff44,transparent 30%),
+      linear-gradient(135deg,#090b18,#10152d 50%,#090b18);
+    color:#fff;
+    overflow:hidden;
+}
+
+.app{
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+}
+
+/* HEADER */
+.header{
+    min-height:72px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:12px 22px;
+    background:rgba(10,12,30,.82);
+    backdrop-filter:blur(18px);
+    border-bottom:1px solid rgba(255,255,255,.12);
+}
+
+.logo{
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+.logoIcon{
+    width:44px;
+    height:44px;
+    border-radius:13px;
+    display:grid;
+    place-items:center;
+    font-size:24px;
+    background:linear-gradient(135deg,#ffca28,#3776ab);
+    box-shadow:0 0 25px #3776ab88;
+}
+
+.logoText{
+    font-size:21px;
+    font-weight:800;
+}
+
+.logoText span{
+    color:#55dfff;
+}
+
+.status{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:8px 13px;
+    border:1px solid rgba(255,255,255,.13);
+    border-radius:30px;
+    background:rgba(255,255,255,.06);
+    font-size:13px;
+}
+
+.dot{
+    width:9px;
+    height:9px;
+    border-radius:50%;
+    background:#ffb300;
+    box-shadow:0 0 12px #ffb300;
+}
+
+.dot.ready{
+    background:#00e676;
+    box-shadow:0 0 12px #00e676;
+}
+
+/* TOOLBAR */
+.toolbar{
+    padding:10px 14px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    background:rgba(5,8,22,.7);
+    border-bottom:1px solid rgba(255,255,255,.08);
+}
+
+button{
+    border:0;
+    color:white;
+    padding:10px 16px;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:700;
+    transition:.2s;
+    background:rgba(255,255,255,.09);
+    border:1px solid rgba(255,255,255,.1);
+}
+
+button:hover{
+    transform:translateY(-2px);
+    background:rgba(255,255,255,.16);
+}
+
+.run{
+    background:linear-gradient(135deg,#00c853,#00a152);
+    box-shadow:0 6px 20px #00c85344;
+}
+
+.stop{
+    background:linear-gradient(135deg,#ff5252,#d50000);
+}
+
+.clear{
+    background:linear-gradient(135deg,#7c4dff,#512da8);
+}
+
+.theme{
+    background:linear-gradient(135deg,#00b8d4,#2979ff);
+}
+
+/* MAIN */
+.workspace{
+    flex:1;
+    min-height:0;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+    padding:12px;
+}
+
+.panel{
+    min-width:0;
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+    background:rgba(13,17,38,.88);
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:18px;
+    overflow:hidden;
+    box-shadow:0 15px 50px rgba(0,0,0,.28);
+}
+
+.panelHeader{
+    height:48px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 15px;
+    background:rgba(255,255,255,.045);
+    border-bottom:1px solid rgba(255,255,255,.08);
+}
+
+.panelTitle{
+    font-weight:800;
+    display:flex;
+    align-items:center;
+    gap:9px;
+}
+
+.badge{
+    font-size:10px;
+    padding:4px 8px;
+    border-radius:20px;
+    background:#3776ab;
+}
+
+/* EDITOR */
+.editorWrap{
+    flex:1;
+    min-height:0;
+    position:relative;
+}
+
+#lineNumbers{
+    position:absolute;
+    left:0;
+    top:0;
+    bottom:0;
+    width:48px;
+    padding:17px 8px;
+    text-align:right;
+    color:#68708d;
+    background:#080b18;
+    font:14px/1.65 Consolas,monospace;
+    overflow:hidden;
+    user-select:none;
+}
+
+#code{
+    position:absolute;
+    left:48px;
+    right:0;
+    top:0;
+    bottom:0;
+    width:calc(100% - 48px);
+    height:100%;
+    resize:none;
+    border:0;
+    outline:0;
+    padding:17px;
+    background:#080b18;
+    color:#e7ecff;
+    font:14px/1.65 Consolas,Monaco,monospace;
+    tab-size:4;
+    white-space:pre;
+    overflow:auto;
+}
+
+/* OUTPUT */
+#output{
+    flex:1;
+    min-height:0;
+    padding:18px;
+    overflow:auto;
+    background:#050711;
+    color:#d7f9df;
+    font:14px/1.6 Consolas,monospace;
+    white-space:pre-wrap;
+}
+
+.outputEmpty{
+    color:#67708c;
+}
+
+.previewBox{
+    height:42%;
+    min-height:130px;
+    margin:12px;
+    padding:15px;
+    border-radius:14px;
+    background:
+      linear-gradient(45deg,#20263d 25%,transparent 25%),
+      linear-gradient(-45deg,#20263d 25%,transparent 25%),
+      linear-gradient(45deg,transparent 75%,#20263d 75%),
+      linear-gradient(-45deg,transparent 75%,#20263d 75%);
+    background-size:22px 22px;
+    background-position:0 0,0 11px,11px -11px,-11px 0;
+    border:1px solid rgba(255,255,255,.12);
+    overflow:auto;
+}
+
+.previewInner{
+    min-height:100%;
+    background:rgba(7,10,23,.82);
+    border-radius:10px;
+    padding:15px;
+}
+
+/* FOOTER */
+.footer{
+    height:38px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    color:#737b98;
+    font-size:12px;
+    border-top:1px solid rgba(255,255,255,.08);
+}
+
+/* MOBILE */
+@media(max-width:850px){
+    body{
+        overflow:auto;
+    }
+
+    .app{
+        min-height:100vh;
+        height:auto;
+    }
+
+    .header{
+        min-height:64px;
+        padding:10px 13px;
+    }
+
+    .logoText{
+        font-size:17px;
+    }
+
+    .status{
+        font-size:11px;
+        padding:7px 9px;
+    }
+
+    .workspace{
+        grid-template-columns:1fr;
+        height:auto;
+        min-height:calc(100vh - 150px);
+    }
+
+    .panel{
+        height:48vh;
+        min-height:350px;
+    }
+
+    .toolbar{
+        overflow-x:auto;
+        flex-wrap:nowrap;
+    }
+
+    .toolbar button{
+        flex-shrink:0;
+    }
+
+    .footer{
+        height:35px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<header class="header">
+    <div class="logo">
+        <div class="logoIcon">🐍</div>
+        <div class="logoText">
+            PyStudio <span>ARnc</span>
+        </div>
+    </div>
+
+    <div class="status">
+        <span class="dot" id="statusDot"></span>
+        <span id="statusText">Loading Python...</span>
+    </div>
+</header>
+
+<div class="toolbar">
+    <button class="run" onclick="runPython()">▶ Run Python</button>
+    <button type="button" id="liveToggle" aria-pressed="false" onclick="toggleLivePreview()">⚡ Live Preview: OFF</button>
+    <button class="stop" onclick="stopPython()">■ Stop</button>
+    <button class="clear" onclick="clearOutput()">⌫ Clear Output</button>
+    <button onclick="downloadCode()">⬇ Download</button>
+    <button onclick="copyCode()">📋 Copy</button>
+    <button onclick="insertExample()">✨ Example</button>
+    <button class="theme" onclick="changeTheme()">🎨 Theme</button>
+</div>
+
+<main class="workspace">
+
+<section class="panel">
+
+    <div class="panelHeader">
+        <div class="panelTitle">
+            🐍 Python Editor
+            <span class="badge">PYTHON</span>
+        </div>
+        <span id="lineInfo">1 line</span>
+    </div>
+
+    <div class="editorWrap">
+
+        <div id="lineNumbers">1</div>
+
+        <textarea id="code" spellcheck="false">print("Hello from PyStudio ARnc!")
+
+name = "ARnc"
+language = "Python"
+
+print("Website:", name)
+print("Language:", language)
+
+for i in range(1, 6):
+    print("Live Python:", i)</textarea>
+
+    </div>
+
+</section>
+
+<section class="panel">
+
+    <div class="panelHeader">
+        <div class="panelTitle">
+            ⚡ Live Preview
+            <span class="badge">OUTPUT</span>
+        </div>
+
+        <span id="runTime">Ready</span>
+    </div>
+
+    <pre id="output"><span class="outputEmpty">Click "Run Python" to execute your code...</span></pre>
+
+    <div class="previewBox">
+        <div class="previewInner" id="visualPreview">
+            <h2>🚀 Python Live Preview</h2>
+            <br>
+            <p>
+                Your Python program output will appear above.
+            </p>
+            <br>
+            <p>
+                This interface runs Python directly inside the browser using Pyodide.
+            </p>
+        </div>
+    </div>
+
+</section>
+
+</main>
+
+<footer class="footer">
+    <span>PyStudio ARnc • Python Live Coding Environment</span>
+    <button type="button" onclick="openInfo('about')">About Website</button>
+    <button type="button" onclick="openInfo('privacy')">Privacy Policy</button>
+</footer>
+
+</div>
+
+<script>
+let pyodide = null;
+let running = false;
+let livePreviewEnabled = false;
+let livePreviewTimer = null;
+let executionVersion = 0;
+
+const codeBox = document.getElementById("code");
+const outputBox = document.getElementById("output");
+const lineNumbers = document.getElementById("lineNumbers");
+const lineInfo = document.getElementById("lineInfo");
+
+async function loadPython(){
+
+    try{
+
+        pyodide = await loadPyodide();
+
+        document.getElementById("statusText").textContent =
+            "Python Ready";
+        if(livePreviewEnabled){
+            clearTimeout(livePreviewTimer);
+            livePreviewTimer = setTimeout(runPython, 0);
+        }
+
+        document.getElementById("statusDot")
+            .classList.add("ready");
+
+    }catch(error){
+
+        document.getElementById("statusText").textContent =
+            "Python Load Error";
+
+        outputBox.textContent =
+            "Python engine could not be loaded.\n\n" + error;
+
+    }
+}
+
+loadPython();
+
+function updateLines(){
+
+    const lines = codeBox.value.split("\n").length;
+
+    let numbers = "";
+
+    for(let i=1;i<=lines;i++){
+        numbers += i + "\n";
+    }
+
+    lineNumbers.textContent = numbers;
+
+    lineInfo.textContent =
+        lines + (lines === 1 ? " line" : " lines");
+}
+
+codeBox.addEventListener("input",()=>{
+    updateLines();
+    if(livePreviewEnabled){
+        clearTimeout(livePreviewTimer);
+        livePreviewTimer = setTimeout(()=>runPython(),500);
+    }
+});
+
+codeBox.addEventListener("scroll",()=>{
+    lineNumbers.scrollTop = codeBox.scrollTop;
+});
+
+updateLines();
+
+codeBox.addEventListener("keydown",function(e){
+
+    if(e.key === "Tab"){
+
+        e.preventDefault();
+
+        const start = this.selectionStart;
+        const end = this.selectionEnd;
+
+        this.value =
+            this.value.substring(0,start) +
+            "    " +
+            this.value.substring(end);
+
+        this.selectionStart =
+        this.selectionEnd =
+            start + 4;
+
+        updateLines();
+        if(livePreviewEnabled){
+            clearTimeout(livePreviewTimer);
+            livePreviewTimer = setTimeout(()=>runPython(),500);
+        }
+    }
+
+    if((e.ctrlKey || e.metaKey) && e.key === "Enter"){
+        e.preventDefault();
+        runPython();
+    }
+
+});
+
+function toggleLivePreview(){
+    livePreviewEnabled = !livePreviewEnabled;
+    const button = document.getElementById("liveToggle");
+    button.textContent = livePreviewEnabled ? "⚡ Live Preview: ON" : "⚡ Live Preview: OFF";
+    button.setAttribute("aria-pressed", String(livePreviewEnabled));
+    if(livePreviewEnabled){
+        runPython();
+    }else{
+        clearTimeout(livePreviewTimer);
+    }
+}
+
+async function runPython(){
+
+    if(running){
+        executionVersion++;
+        return;
+    }
+
+    if(!pyodide){
+
+        outputBox.textContent =
+            "Python engine is still loading...\nPlease wait.";
+
+        return;
+    }
+
+    running = true;
+    const thisExecution = ++executionVersion;
+
+    const startTime = performance.now();
+
+    outputBox.textContent = "Running Python...\n";
+
+    try{
+
+        const code = codeBox.value;
+
+        pyodide.setStdout({
+            batched: function(text){
+                outputBox.textContent += text;
+                outputBox.scrollTop = outputBox.scrollHeight;
+            }
+        });
+
+        pyodide.setStderr({
+            batched: function(text){
+                outputBox.textContent += "ERROR: " + text;
+            }
+        });
+
+        await pyodide.runPythonAsync(code);
+
+        if(thisExecution !== executionVersion) return;
+
+        const elapsed =
+            (performance.now() - startTime).toFixed(0);
+
+        document.getElementById("runTime").textContent =
+            elapsed + " ms";
+
+        updatePreview(outputBox.textContent);
+
+    }catch(error){
+
+        if(thisExecution !== executionVersion) return;
+        outputBox.textContent +=
+            "\n\n❌ Python Error:\n" + error;
+
+        document.getElementById("runTime").textContent =
+            "Error";
+
+    }finally{
+
+        running = false;
+    }
+}
+
+function stopPython(){
+
+    /*
+      Browser based Pyodide execution cannot safely
+      terminate arbitrary Python instantly.
+      This button resets the UI execution state.
+    */
+
+    clearTimeout(livePreviewTimer);
+    livePreviewTimer = null;
+    if(running){
+        outputBox.textContent +=
+            "\n\n⚠️ Stop requested. Pyodide cannot interrupt an active Python task; it will finish before another run.";
+        document.getElementById("runTime").textContent = "Stop requested";
+    }else{
+        outputBox.textContent += "\n\n⏹ Pending live preview cancelled.";
+        document.getElementById("runTime").textContent = "Ready";
+    }
+}
+
+function clearOutput(){
+
+    outputBox.innerHTML =
+        '<span class="outputEmpty">Output cleared...</span>';
+
+    document.getElementById("runTime").textContent =
+        "Ready";
+
+}
+
+async function copyCode(){
+    const button = document.activeElement;
+    try{
+        if(navigator.clipboard && navigator.clipboard.writeText){
+            await navigator.clipboard.writeText(codeBox.value);
+        }else{
+            codeBox.focus();
+            codeBox.select();
+            if(!document.execCommand("copy")) throw new Error("Clipboard unavailable");
+        }
+        if(button && button.tagName === "BUTTON"){
+            const old = button.textContent;
+            button.textContent = "✓ Copied";
+            setTimeout(()=>button.textContent = old,1200);
+        }
+    }catch(error){
+        alert("Copy failed. Please select and copy the code manually.");
+    }
+}
+
+function downloadCode(){
+
+    const blob = new Blob(
+        [codeBox.value],
+        {type:"text/plain"}
+    );
+
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+
+    a.href = url;
+    a.download = "python_program.py";
+
+    a.click();
+
+    URL.revokeObjectURL(url);
+}
+
+function insertExample(){
+
+    codeBox.value =
+`import math
+
+print("🚀 PyStudio ARnc")
+print("================")
+
+numbers = [10, 20, 30, 40, 50]
+
+print("Numbers:", numbers)
+print("Total:", sum(numbers))
+print("Average:", sum(numbers) / len(numbers))
+print("Square root of 144:", math.sqrt(144))
+
+for number in numbers:
+    print("Value:", number)
+
+print("\\nPython program completed successfully!")`;
+
+    updateLines();
+    if(livePreviewEnabled){
+        clearTimeout(livePreviewTimer);
+        livePreviewTimer = setTimeout(runPython,500);
+    }
+}
+
+function updatePreview(text){
+
+    const preview =
+        document.getElementById("visualPreview");
+
+    const safe =
+        text.replace(/&/g,"&amp;")
+            .replace(/</g,"&lt;")
+            .replace(/>/g,"&gt;");
+
+    preview.innerHTML = `
+        <h2>✨ Live Python Result</h2>
+        <br>
+        <pre style="
+            white-space:pre-wrap;
+            font-family:Consolas,monospace;
+            color:#d7f9df;
+        ">${safe}</pre>
+    `;
+}
+
+let darkMode = true;
+
+function changeTheme(){
+
+    darkMode = !darkMode;
+
+    if(!darkMode){
+
+        document.body.style.background =
+            "linear-gradient(135deg,#eef4ff,#dce9ff)";
+
+        document.body.style.color =
+            "#10152d";
+
+    }else{
+
+        document.body.style.background =
+            "radial-gradient(circle at 10% 10%,#553cff55,transparent 30%)," +
+            "radial-gradient(circle at 90% 20%,#00d4ff44,transparent 30%)," +
+            "linear-gradient(135deg,#090b18,#10152d 50%,#090b18)";
+
+        document.body.style.color =
+            "#fff";
+    }
+}
+</script>
+
+
+<style>
+.infoModal{display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.78);padding:16px;overflow:auto;}
+.infoModal.show{display:block}.infoCard{max-width:900px;max-height:90vh;overflow:auto;margin:3vh auto;background:#10182d;color:#eef3ff;border:1px solid #526080;border-radius:16px;padding:24px;box-shadow:0 20px 70px #0009;line-height:1.75;}
+.infoCard h2{color:#55dfff;margin:0 0 12px}.infoCard h3{color:#9fdfff;margin:22px 0 7px}.infoCard p{margin:0 0 12px}.infoClose{float:right;background:#d93650!important;margin-left:12px}.infoCard .infoLead{color:#c4cce0}
+@media(max-width:600px){.infoCard{padding:16px;margin:1vh auto;max-height:96vh}.footer button{padding:7px 10px;font-size:12px}}
+</style>
+<div id="infoModal" class="infoModal" role="dialog" aria-modal="true" aria-labelledby="infoTitle" onclick="if(event.target===this)closeInfo()">
+ <article class="infoCard"><button class="infoClose" type="button" onclick="closeInfo()">✕ Close</button><h2 id="infoTitle"></h2><div id="infoContent"></div></article>
+</div>
+<script>
+const infoArticles={
+about:{title:'About PyStudio ARnc',html:`
+<p class="infoLead">PyStudio ARnc is a browser-based Python learning and practice environment. It is designed to give beginners and regular learners a simple place to write Python code, run it, and inspect the result without needing to install a traditional desktop editor.</p>
+<h3>1. About the Website</h3><p>PyStudio ARnc brings a code editor, line numbers, an output area, and a preview panel together on one page. Write a Python program and select Run Python to execute it through the available browser-based Python runtime. The interface is intended for learning, experimentation, and small coding exercises.</p>
+<h3>2. Learning and Practice</h3><p>Beginners can practise print statements, variables, strings, numbers, lists, loops, conditions, and functions. Changing a small example and running it again helps learners understand the relationship between source code and output. Students can gradually try more complex exercises and develop the habit of reading error messages instead of ignoring them.</p>
+<h3>3. Editor and Tools</h3><p>The editor provides line numbers and indentation support. The keyboard shortcut Ctrl+Enter, or Command+Enter on supported devices, can be used to run code. Copy and Download options help you keep a local copy of your work. The Example control inserts a sample program, Clear Output clears the result area, and the Theme control changes the appearance of the editor.</p>
+<h3>4. Python Runtime</h3><p>This page loads the Pyodide runtime from a content delivery network. An internet connection and availability of that CDN may therefore be required, especially the first time the page is opened. Once loaded, supported Python code runs in the browser. Not every feature, native package, or operating-system capability of desktop Python is necessarily available here.</p>
+<h3>5. Output and Preview</h3><p>The output panel displays text produced by print statements and may also show error messages. The preview panel presents the result in a readable form. It should not be treated as a complete desktop graphical interface, a web server, or a full graphical Python application. The environment is primarily intended for text-based learning and small experiments.</p>
+<h3>6. Safe and Responsible Use</h3><p>Read code from unfamiliar sources before running it. Unexpected or very long-running code can make a browser tab slow or unresponsive. Do not place passwords, private documents, identity numbers, or other sensitive information in sample programs. This learning tool does not claim to be a secure production server or a guaranteed security sandbox.</p>
+<h3>7. Limitations</h3><p>Behavior can vary with the browser, device memory, network connection, and runtime version. Some third-party Python packages may not be available. A program that runs continuously may not always stop immediately through the page controls; closing or reloading the tab may be necessary. Keep these limitations in mind when choosing an exercise.</p>
+<h3>8. User Responsibilities</h3><p>Check your code for correctness, keep a separate copy of important work, and remember where downloaded files are saved. Follow your teacher's or course's instructions when using the website for schoolwork. When using another person's code, respect its license and attribution requirements.</p>
+<h3>9. Improvements and Feedback</h3><p>The interface may be improved over time. Testing it in different browsers and screen sizes can reveal issues. If a button does not respond, the runtime does not load, or output appears incorrect, the browser console error and the steps needed to reproduce the problem can help identify the cause.</p>
+<h3>10. Getting Started</h3><p>Begin with a short program, then make one change at a time. If an error appears, read the full message and check the indicated line. Indentation matters in Python, so keep the spacing consistent inside loops and functions. Try different inputs and record the goal, code, expected output, and actual output in your learning notes.</p>
+<h3>11. Educational Purpose</h3><p>PyStudio ARnc is intended as an accessible practice aid. The information on this page does not claim official approval or certification by a particular examination board, school, institution, or Python certification provider. Learning outcomes depend on practice, review, and the learner's own effort.</p>
+<h3>12. Summary</h3><p>The goal of PyStudio ARnc is to make Python practice approachable: write code, run it, inspect the output, learn from errors, and save your work responsibly. It is an educational tool, and users remain responsible for checking results and keeping backups of important files.</p>`},
+privacy:{title:'Privacy Policy',html:`
+<p class="infoLead">This Privacy Policy explains what information may be processed locally while using PyStudio ARnc, which external technology the page loads, and what users can do to protect their privacy.</p>
+<h3>1. General Information</h3><p>PyStudio ARnc is a client-side HTML interface. The page does not declare its own account-registration system or server-side database feature. This does not mean that a browser, internet connection, or external service makes no network requests. Users should also understand the privacy settings of their browser and network.</p>
+<h3>2. Python Code and Output</h3><p>Code typed into the editor is held in the browser page session and supplied to the Pyodide runtime. The HTML does not show a separate upload endpoint that sends code to a proprietary application backend. However, browser extensions, device-management software, or network-level tools may operate outside the control of this page.</p>
+<h3>3. External Runtime</h3><p>The Python runtime is loaded from the jsDelivr content delivery network. When a CDN request is made, the provider may receive ordinary technical information such as an IP address, browser request headers, and the time of the request. The provider's own privacy policy and infrastructure practices apply. A network connection is needed to download the runtime.</p>
+<h3>4. Cookies and Local Storage</h3><p>The supplied page does not contain explicit code for setting analytics or advertising cookies. A browser may still keep cache or site data. If local saving, preferences, analytics, or other tracking features are added later, this policy should be updated to describe the actual behavior. Users can manage or clear site data through their browser settings.</p>
+<h3>5. Clipboard and Downloads</h3><p>The Copy feature may use the Clipboard API, which can be subject to browser permissions or secure-context requirements. The Download option creates a code file on the user's device. Downloaded files remain under the user's control; before sharing one, check whether it contains private information.</p>
+<h3>6. Children and Students</h3><p>Students should avoid putting names, home addresses, phone numbers, school identification details, passwords, or other personal information into sample code. If a school-managed or family-managed device is being used, the relevant institution's device and internet-use policies may also apply.</p>
+<h3>7. Data Security</h3><p>Save your work in a suitable location, but do not leave sensitive code on a public or shared computer. Check the editor and output before sharing your screen. Understand the source and purpose of unfamiliar Python code before running it. This website does not claim to provide a complete security sandbox.</p>
+<h3>8. Third-Party Services</h3><p>The CDN, browser, operating system, and internet provider are independent services. Their availability, logging, and privacy practices are not fully controlled by the website operator. Review the relevant provider's official privacy information for details about its own services.</p>
+<h3>9. Changes to This Policy</h3><p>If login, cloud saving, analytics, advertisements, or other network features are added, this policy should be revised to match the actual data flows. Publishing an effective date and a summary of changes helps users understand what has changed.</p>
+<h3>10. Your Choices</h3><p>You can reduce privacy risks by keeping personal information out of code, declining clipboard permissions when they are not needed, clearing browser cache when appropriate, and managing downloaded files carefully. On a shared device, close the page when finished and check whether any local files should be removed.</p>
+<h3>11. Contact and Transparency</h3><p>No verified contact email address or legal entity address is provided in this HTML, so this policy does not invent one. The website operator should publish a genuine contact method, applicable jurisdiction, and effective date where appropriate.</p>
+<h3>12. Important Notice</h3><p>This text is general privacy information and is not legal advice. Before deploying the website, the operator should review its hosting, analytics, CDN, cookies, and data flows and ensure that the published policy accurately reflects them. Users may read this information and choose browser and device privacy controls according to their needs.
+    ____
+
+    Contact us:
+    Website: Pystudio.ARnc
+    Privacy / Support Email: subham99209114@gmail.com
+    Contact no: 7544095688
+    </p>`}
+};
+function openInfo(which){const item=infoArticles[which];if(!item)return;document.getElementById('infoTitle').textContent=item.title;document.getElementById('infoContent').innerHTML=item.html;document.getElementById('infoModal').classList.add('show');document.body.style.overflow='hidden';}
+function closeInfo(){document.getElementById('infoModal').classList.remove('show');document.body.style.overflow='';}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeInfo()});
+</script>
+
+</body>
+</html>
